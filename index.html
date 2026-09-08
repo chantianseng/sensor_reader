@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phone Sensor Reader</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background: #f4f4f9; color: #333; max-width: 600px; margin: auto; }
+        .card { background: white; padding: 15px; margin-bottom: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { width: 100%; padding: 12px; background: #2ea44f; color: white; font-size: 16px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin-bottom: 15px; }
+        h3 { margin-top: 0; color: #0366d6; }
+    </style>
+</head>
+<body>
+
+    <h2>Phone Sensor Dashboard</h2>
+    <button onclick="initSensors()">Enable Sensors</button>
+
+    <div class="card">
+        <h3>GPS Location</h3>
+        <p id="gps">Click 'Enable Sensors' to start GPS...</p>
+    </div>
+
+    <div class="card">
+        <h3>Motion (Accelerometer / Gyroscope)</h3>
+        <p id="motion">Waiting for motion data...</p>
+    </div>
+
+    <script>
+        function initSensors() {
+            // 1. Geolocation API
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(pos => {
+                    document.getElementById('gps').innerHTML = 
+                        `Latitude: ${pos.coords.latitude.toFixed(5)}<br>` +
+                        `Longitude: ${pos.coords.longitude.toFixed(5)}<br>` +
+                        `Accuracy: ${pos.coords.accuracy}m`;
+                }, err => {
+                    document.getElementById('gps').innerText = `GPS Error: ${err.message}`;
+                }, { enableHighAccuracy: true });
+            } else {
+                document.getElementById('gps').innerText = "Geolocation not supported.";
+            }
+
+            // 2. Device Orientation API (iOS 13+ requires explicit permission)
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission()
+                    .then(response => {
+                        if (response === 'granted') {
+                            window.addEventListener('deviceorientation', handleOrientation);
+                        }
+                    }).catch(console.error);
+            } else {
+                window.addEventListener('deviceorientation', handleOrientation);
+            }
+        }
+
+        function handleOrientation(event) {
+            document.getElementById('motion').innerHTML = 
+                `Alpha (Z-axis): ${event.alpha ? event.alpha.toFixed(1) : 'N/A'}°<br>` +
+                `Beta (X-axis): ${event.beta ? event.beta.toFixed(1) : 'N/A'}°<br>` +
+                `Gamma (Y-axis): ${event.gamma ? event.gamma.toFixed(1) : 'N/A'}°`;
+        }
+    </script>
+</body>
+</html>
