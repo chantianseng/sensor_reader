@@ -4,472 +4,263 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#0d1117">
-<title>全设备 200 项参数与传感器遥测引擎 (多标签页 10Hz)</title>
+<title>iPhone 15 Telemetry Engine (10Hz)</title>
 <style>
-:root{--bg:#090d13;--panel:#111722;--panel2:#171e2b;--line:#273244;--text:#edf2f7;--muted:#93a0b3;--gold:#d8b36a;--green:#72b08a}
+:root{--bg:#090d13;--panel:#111722;--panel2:#171e2b;--line:#273244;--text:#edf2f7;--muted:#93a0b3;--gold:#d8b36a;--green:#72b08a;--blue:#58a6ff}
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif}
 body{padding-bottom:env(safe-area-inset-bottom)}
-.app{max-width:720px;margin:auto;min-height:100vh;padding:calc(16px + env(safe-area-inset-top)) 16px 28px}
-header{display:flex;justify-content:space-between;align-items:center;padding:10px 2px 20px}
-.brand{font-weight:800;letter-spacing:.08em;font-size:18px;flex:1;padding-right:10px;word-break:break-word}
-.brand span{color:var(--gold)}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:15px;box-shadow:0 16px 45px #0005}
-.tabs-container{display:flex;overflow-x:auto;gap:8px;margin-bottom:15px;padding-bottom:5px;scrollbar-width:none}
+.app{max-width:430px;margin:auto;min-height:100vh;padding:calc(12px + env(safe-area-inset-top)) 12px 24px}
+header{display:flex;justify-content:space-between;align-items:center;padding:8px 2px 16px}
+.brand{font-weight:800;letter-spacing:.05em;font-size:16px;color:var(--gold)}
+.tabs-container{display:flex;overflow-x:auto;gap:8px;margin-bottom:12px;padding-bottom:4px;scrollbar-width:none}
 .tabs-container::-webkit-scrollbar{display:none}
-.tab-btn{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all 0.2s}
+.tab-btn{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all 0.2s}
 .tab-btn.active{background:var(--gold);color:#15110a;border-color:var(--gold)}
-.section-title{font-weight:800;margin:0 0 12px;font-size:15px;color:var(--gold);display:flex;align-items:center;gap:8px}
-.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.result-item{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-.result-item small{display:block;color:var(--muted);font-size:11px;margin-bottom:4px;word-break:break-all}
-.result-item b{font-size:14px;color:var(--text);word-break:break-all}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 8px 30px #0004}
+.section-title{font-weight:700;margin:0 0 10px;font-size:13px;color:var(--gold);display:flex;justify-content:space-between;align-items:center}
+.ip-badge{background:var(--panel2);border:1px solid var(--line);padding:10px 14px;border-radius:12px;font-size:13px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.ip-badge b{color:var(--blue)}
+.chart-box{position:relative;width:100%;height:130px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+canvas{width:100%;height:100%;display:block}
+.legend{display:flex;gap:12px;font-size:10px;color:var(--muted);margin-top:6px}
+.legend span{display:flex;align-items:center;gap:4px}
+.dot{width:8px;height:8px;border-radius:50%}
 </style>
 </head>
 <body>
 
 <div class="app">
   <header>
-    <div class="brand" data-i18n="brand">全设备 200 项参数与传感器遥测引擎 (10Hz)</div>
-    <div style="display:flex; gap:4px; align-items:center;">
-      <button style="width:38px;height:38px;min-width:38px;flex-shrink:0;border:none;background:transparent;border-radius:50%;padding:0;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="openMap()" title="打开地图查看">🌍</button>
-      <button id="langBtn" style="width:38px;height:38px;min-width:38px;flex-shrink:0;border:none;background:transparent;border-radius:50%;padding:0;font-size:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="toggleLang()" title="Switch Language">🇨🇳</button>
-    </div>
+    <div class="brand">iPhone 15 Telemetry (10Hz)</div>
+    <button onclick="requestSensorAccess()" style="background:var(--panel2);color:var(--gold);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;">Enable Sensors</button>
   </header>
 
-  <div class="tabs-container" id="tabsContainer">
-    <button class="tab-btn active" onclick="switchTab(0)" data-tab="0">1. 系统核心与性能</button>
-    <button class="tab-btn" onclick="switchTab(1)" data-tab="1">2. 运动与位置传感器</button>
-    <button class="tab-btn" onclick="switchTab(2)" data-tab="2">3. 能源、热力与硬件</button>
-    <button class="tab-btn" onclick="switchTab(3)" data-tab="3">4. 网络、显示与外设</button>
-    <button class="tab-btn" onclick="switchTab(4)" data-tab="4">5. 高级子系统与环境</button>
-    <button class="tab-btn" onclick="switchTab(5)" data-tab="5">6. 安全与内核诊断</button>
-    <button class="tab-btn" onclick="switchTab(6)" data-tab="6">7. 扩展外设与总线I/O</button>
-    <button class="tab-btn" onclick="switchTab(7)" data-tab="7">8. 虚拟化与容器指标</button>
+  <div class="ip-badge">
+    <span>IP Address:</span>
+    <b id="ipDisplay">Fetching...</b>
   </div>
 
-  <div class="card" id="card1"><div class="section-title" data-i18n="sec_1">1. 系统核心与性能参数 (1-25)</div><div class="result-grid" id="grid1"></div></div>
-  <div class="card" id="card2" style="display:none;"><div class="section-title" data-i18n="sec_2">2. 运动与位置传感器 (26-50)</div><div class="result-grid" id="grid2"></div></div>
-  <div class="card" id="card3" style="display:none;"><div class="section-title" data-i18n="sec_3">3. 能源、热力与硬件状态 (51-75)</div><div class="result-grid" id="grid3"></div></div>
-  <div class="card" id="card4" style="display:none;"><div class="section-title" data-i18n="sec_4">4. 网络、显示、音频与外设 (76-100)</div><div class="result-grid" id="grid4"></div></div>
-  <div class="card" id="card5" style="display:none;"><div class="section-title" data-i18n="sec_5">5. 高级子系统与环境遥测 (101-125)</div><div class="result-grid" id="grid5"></div></div>
-  <div class="card" id="card6" style="display:none;"><div class="section-title" data-i18n="sec_6">6. 安全、生物识别与内核诊断 (126-150)</div><div class="result-grid" id="grid6"></div></div>
-  <div class="card" id="card7" style="display:none;"><div class="section-title" data-i18n="sec_7">7. 扩展外设、总线与I/O遥测 (151-175)</div><div class="result-grid" id="grid7"></div></div>
-  <div class="card" id="card8" style="display:none;"><div class="section-title" data-i18n="sec_8">8. 虚拟化、云端与容器指标 (176-200)</div><div class="result-grid" id="grid8"></div></div>
+  <div class="tabs-container">
+    <button class="tab-btn active" onclick="switchTab(0)">1. System & Network</button>
+    <button class="tab-btn" onclick="switchTab(1)">2. Motion & Orientation</button>
+    <button class="tab-btn" onclick="switchTab(2)">3. Environment & GPS</button>
+  </div>
 
-  <div class="card" id="mapCard" style="display: none;">
-    <div class="section-title">GPS Location Map</div>
-    <div id="googleMap" style="width: 100%; height: 350px; border-radius: 12px; background: var(--panel2);"></div>
+  <!-- TAB 1: System & Network -->
+  <div class="tab-content" id="tab0">
+    <div class="card">
+      <div class="section-title">CPU & GPU Usage</div>
+      <div class="chart-box"><canvas id="chartCpuGpu"></canvas></div>
+      <div class="legend"><span><i class="dot" style="background:#d8b36a"></i>CPU</span><span><i class="dot" style="background:#58a6ff"></i>GPU</span></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Network Download Speed</div>
+      <div class="chart-box"><canvas id="chartDownload"></canvas></div>
+      <div class="legend"><span><i class="dot" style="background:#72b08a"></i>Mbps</span></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Network Upload Speed</div>
+      <div class="chart-box"><canvas id="chartUpload"></canvas></div>
+      <div class="legend"><span><i class="dot" style="background:#d8b36a"></i>Mbps</span></div>
+    </div>
+  </div>
+
+  <!-- TAB 2: Motion & Orientation -->
+  <div class="tab-content" id="tab1" style="display:none;">
+    <div class="card">
+      <div class="section-title">Accelerometer (X, Y, Z)</div>
+      <div class="chart-box"><canvas id="chartAccel"></canvas></div>
+      <div class="legend"><span><i class="dot" style="background:#ff7b72"></i>X</span><span><i class="dot" style="background:#72b08a"></i>Y</span><span><i class="dot" style="background:#58a6ff"></i>Z</span></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Gyroscope (Pitch, Roll, Yaw)</div>
+      <div class="chart-box"><canvas id="chartGyro"></canvas></div>
+      <div class="legend"><span><i class="dot" style="background:#ff7b72"></i>Pitch</span><span><i class="dot" style="background:#72b08a"></i>Roll</span><span><i class="dot" style="background:#58a6ff"></i>Yaw</span></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Magnetic Field</div>
+      <div class="chart-box"><canvas id="chartMag"></canvas></div>
+      <div class="legend"><span><i class="dot" style="background:#d8b36a"></i>µT Strength</span></div>
+    </div>
+  </div>
+
+  <!-- TAB 3: Environment & GPS -->
+  <div class="tab-content" id="tab2" style="display:none;">
+    <div class="card">
+      <div class="section-title">Pressure & Ambient Light</div>
+      <div class="chart-box"><canvas id="chartEnv"></canvas></div>
+      <div class="legend"><span><i class="dot" style="background:#58a6ff"></i>Pressure (hPa - 1000)</span><span><i class="dot" style="background:#d8b36a"></i>Light (lx/10)</span></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Microphone Decibel Level</div>
+      <div class="chart-box"><canvas id="chartMic"></canvas></div>
+      <div class="legend"><span><i class="dot" style="background:#ff7b72"></i>dB</span></div>
+    </div>
+    <div class="card">
+      <div class="section-title">GPS Ground Speed & Altitude</div>
+      <div class="chart-box"><canvas id="chartGps"></canvas></div>
+      <div class="legend"><span><i class="dot" style="background:#72b08a"></i>Speed (m/s)</span><span><i class="dot" style="background:#58a6ff"></i>Altitude (m)</span></div>
+    </div>
   </div>
 </div>
 
 <script>
-let currentLang = 'zh';
 let activeTab = 0;
-let tabInterval = null;
-let lastParamsData = {};
-let sensorsInitialized = false;
+let loopTimer = null;
+const maxPoints = 40;
 
-let googleMap = null;
-let googleMarker = null;
-
-const i18n = {
-  zh: {
-    brand: "全设备 200 项参数与传感器遥测引擎 (10Hz)",
-    sec_1: "1. 系统核心与性能参数 (1-25)",
-    sec_2: "2. 运动与位置传感器 (26-50)",
-    sec_3: "3. 能源、热力与硬件状态 (51-75)",
-    sec_4: "4. 网络、显示、音频与外设 (76-100)",
-    sec_5: "5. 高级子系统与环境遥测 (101-125)",
-    sec_6: "6. 安全、生物识别与内核诊断 (126-150)",
-    sec_7: "7. 扩展外设、总线与I/O遥测 (151-175)",
-    sec_8: "8. 虚拟化、云端与容器指标 (176-200)"
-  },
-  en: {
-    brand: "Complete 200-Parameter Device & Sensor Telemetry Engine (10Hz)",
-    sec_1: "1. Core System & Performance (1-25)",
-    sec_2: "2. Motion & Position Sensors (26-50)",
-    sec_3: "3. Power, Thermal & Hardware (51-75)",
-    sec_4: "4. Network, Display & Peripherals (76-100)",
-    sec_5: "5. Advanced Subsystems & Environmental (101-125)",
-    sec_6: "6. Security, Biometrics & Kernel (126-150)",
-    sec_7: "7. Extended Peripheral & Bus I/O (151-175)",
-    sec_8: "8. Virtualization, Cloud & Containers (176-200)"
-  }
+let sensorData = {
+  cpu: 15, gpu: 10,
+  download: 45, upload: 15,
+  accelX: 0, accelY: 0, accelZ: 9.8,
+  gyroX: 0, gyroY: 0, gyroZ: 0,
+  mag: 45,
+  pressure: 1013, light: 300,
+  mic: -45,
+  gpsSpeed: 0, gpsAlt: 0
 };
 
-let sensorState = {
-  accel: {x:0, y:0, z:0},
-  gyro: {alpha:0, beta:0, gamma:0},
-  gps: {lat: 3.1390, lon: 101.6869, alt: 0, speed: 0, accuracy: 0},
-  battery: {level: 100, charging: true, temp: 32},
-  orientation: {alpha:0, beta:0, gamma:0}
+let historyData = {
+  cpu: Array(maxPoints).fill(15), gpu: Array(maxPoints).fill(10),
+  download: Array(maxPoints).fill(45), upload: Array(maxPoints).fill(15),
+  accelX: Array(maxPoints).fill(0), accelY: Array(maxPoints).fill(0), accelZ: Array(maxPoints).fill(9.8),
+  gyroX: Array(maxPoints).fill(0), gyroY: Array(maxPoints).fill(0), gyroZ: Array(maxPoints).fill(0),
+  mag: Array(maxPoints).fill(45),
+  pressure: Array(maxPoints).fill(13), light: Array(maxPoints).fill(30),
+  mic: Array(maxPoints).fill(-45),
+  gpsSpeed: Array(maxPoints).fill(0), gpsAlt: Array(maxPoints).fill(0)
 };
 
-function initSensors() {
-  if (sensorsInitialized) return;
-  
-  // Request permission for iOS 13+ devices
+function requestSensorAccess() {
   if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-    DeviceMotionEvent.requestPermission().then(response => {
-      if (response === 'granted') {
-        window.addEventListener('devicemotion', handleMotion);
-      }
+    DeviceMotionEvent.requestPermission().then(resp => {
+      if(resp === 'granted') bindSensors();
     }).catch(console.error);
   } else {
-    window.addEventListener('devicemotion', handleMotion);
-  }
-
-  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-    DeviceOrientationEvent.requestPermission().then(response => {
-      if (response === 'granted') {
-        window.addEventListener('deviceorientation', handleOrientation);
-      }
-    }).catch(console.error);
-  } else {
-    window.addEventListener('deviceorientation', handleOrientation);
-  }
-
-  if (navigator.geolocation) {
-    navigator.geolocation.watchPosition(pos => {
-      sensorState.gps.lat = pos.coords.latitude;
-      sensorState.gps.lon = pos.coords.longitude;
-      sensorState.gps.alt = pos.coords.altitude || 0;
-      sensorState.gps.speed = pos.coords.speed || 0;
-      sensorState.gps.accuracy = pos.coords.accuracy || 0;
-    }, err => {}, {enableHighAccuracy: true, maximumAge: 0, timeout: 5000});
-  }
-
-  if (navigator.getBattery) {
-    navigator.getBattery().then(bat => {
-      sensorState.battery.level = Math.round(bat.level * 100);
-      sensorState.battery.charging = bat.charging;
-    });
-  }
-
-  sensorsInitialized = true;
-}
-
-function handleMotion(e) {
-  if (e.acceleration) {
-    sensorState.accel.x = e.acceleration.x !== null ? e.acceleration.x.toFixed(2) : 0;
-    sensorState.accel.y = e.acceleration.y !== null ? e.acceleration.y.toFixed(2) : 0;
-    sensorState.accel.z = e.acceleration.z !== null ? e.acceleration.z.toFixed(2) : 0;
-  } else if (e.accelerationIncludingGravity) {
-    sensorState.accel.x = e.accelerationIncludingGravity.x !== null ? e.accelerationIncludingGravity.x.toFixed(2) : 0;
-    sensorState.accel.y = e.accelerationIncludingGravity.y !== null ? e.accelerationIncludingGravity.y.toFixed(2) : 0;
-    sensorState.accel.z = e.accelerationIncludingGravity.z !== null ? e.accelerationIncludingGravity.z.toFixed(2) : 0;
+    bindSensors();
   }
 }
 
-function handleOrientation(e) {
-  sensorState.orientation.alpha = e.alpha !== null ? e.alpha.toFixed(1) : 0;
-  sensorState.orientation.beta = e.beta !== null ? e.beta.toFixed(1) : 0;
-  sensorState.orientation.gamma = e.gamma !== null ? e.gamma.toFixed(1) : 0;
-}
-
-window.initGoogleMap = function() {
-  const mapElement = document.getElementById('googleMap');
-  if (mapElement) {
-    googleMap = new google.maps.Map(mapElement, {
-      zoom: 14,
-      center: { lat: sensorState.gps.lat, lng: sensorState.gps.lon },
-      mapTypeId: 'roadmap'
-    });
-    googleMarker = new google.maps.Marker({
-      position: { lat: sensorState.gps.lat, lng: sensorState.gps.lon },
-      map: googleMap
-    });
-  }
-};
-
-function updateGoogleMap(lat, lon) {
-  if (!googleMap || !googleMarker) return;
-  const pos = { lat: parseFloat(lat), lng: parseFloat(lon) };
-  googleMap.setCenter(pos);
-  googleMarker.setPosition(pos);
-}
-
-function openMap() {
-  const mapCard = document.getElementById('mapCard');
-  mapCard.style.display = mapCard.style.display === 'none' ? 'block' : 'none';
-  if(mapCard.style.display === 'block' && googleMap) {
-    google.maps.event.trigger(googleMap, 'resize');
-    updateGoogleMap(sensorState.gps.lat, sensorState.gps.lon);
-  }
-}
-
-function toggleLang() {
-  currentLang = currentLang === 'zh' ? 'en' : 'zh';
-  document.getElementById('langBtn').innerText = currentLang === 'zh' ? '🇨🇳' : '🇬🇧';
-  updateText();
-  if(Object.keys(lastParamsData).length > 0) renderActiveTab(lastParamsData);
-}
-
-function updateText() {
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.getAttribute('data-i18n');
-    if (i18n[currentLang][key]) el.innerHTML = i18n[currentLang][key];
-  });
-}
-
-function switchTab(index) {
-  // Trigger sensor permission request on user tap/click interaction
-  initSensors();
-
-  activeTab = index;
-  if (tabInterval) clearInterval(tabInterval);
-
-  document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
-    if (idx === index) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
+function bindSensors() {
+  window.addEventListener('devicemotion', e => {
+    if(e.acceleration) {
+      sensorData.accelX = e.acceleration.x || 0;
+      sensorData.accelY = e.acceleration.y || 0;
+      sensorData.accelZ = e.acceleration.z || 9.8;
     }
   });
-
-  for (let i = 0; i < 8; i++) {
-    const card = document.getElementById(`card${i+1}`);
-    if (card) card.style.display = (i === index) ? 'block' : 'none';
+  window.addEventListener('deviceorientation', e => {
+    sensorData.gyroX = e.beta || 0;
+    sensorData.gyroY = e.gamma || 0;
+    sensorData.gyroZ = e.alpha || 0;
+  });
+  if(navigator.geolocation) {
+    navigator.geolocation.watchPosition(pos => {
+      sensorData.gpsSpeed = pos.coords.speed || 0;
+      sensorData.gpsAlt = pos.coords.altitude || 0;
+    }, err => {}, {enableHighAccuracy: true});
   }
-
-  runActiveTabTelemetry();
-  tabInterval = setInterval(runActiveTabTelemetry, 100);
 }
 
-function runActiveTabTelemetry() {
-  const zh = currentLang === 'zh';
-  const p = {
-    1: {name: zh ? "CPU 总体占用率" : "CPU Overall Usage", val: (Math.random() * 25 + 10).toFixed(1) + "%"},
-    2: {name: zh ? "CPU 核心1占用" : "CPU Core 1 Usage", val: (Math.random() * 30 + 5).toFixed(1) + "%"},
-    3: {name: zh ? "CPU 核心2占用" : "CPU Core 2 Usage", val: (Math.random() * 30 + 5).toFixed(1) + "%"},
-    4: {name: zh ? "CPU 核心3占用" : "CPU Core 3 Usage", val: (Math.random() * 30 + 5).toFixed(1) + "%"},
-    5: {name: zh ? "CPU 核心4占用" : "CPU Core 4 Usage", val: (Math.random() * 30 + 5).toFixed(1) + "%"},
-    6: {name: zh ? "CPU 核心频率" : "CPU Core Clock Speed", val: (navigator.hardwareConcurrency ? 2.4 : 2.0) + " GHz"},
-    7: {name: zh ? "CPU 逻辑处理器数" : "Logical Processors", val: navigator.hardwareConcurrency || 8},
-    8: {name: zh ? "CPU 芯片架构" : "CPU Architecture", val: navigator.platform || "ARM64/x64"},
-    9: {name: zh ? "CPU 封装温度" : "CPU Package Temp", val: (38 + Math.random() * 6).toFixed(1) + " °C"},
-    10: {name: zh ? "CPU 核心 1 温度" : "CPU Core 1 Temp", val: (37 + Math.random() * 5).toFixed(1) + " °C"},
-    11: {name: zh ? "CPU 核心电压" : "CPU Core Voltage", val: "1.12 V"},
-    12: {name: zh ? "CPU 功耗" : "CPU Power Draw", val: (3.5 + Math.random() * 2).toFixed(1) + " W"},
-    13: {name: zh ? "GPU 总体占用率" : "GPU Overall Usage", val: (Math.random() * 15 + 5).toFixed(1) + "%"},
-    14: {name: zh ? "GPU 核心温度" : "GPU Temperature", val: (39 + Math.random() * 4).toFixed(1) + " °C"},
-    15: {name: zh ? "GPU 核心频率" : "GPU Core Clock", val: "650 MHz"},
-    16: {name: zh ? "GPU 显存频率" : "GPU Memory Clock", val: "1600 MHz"},
-    17: {name: zh ? "GPU 核心电压" : "GPU Voltage", val: "0.95 V"},
-    18: {name: zh ? "专用显存占用" : "Dedicated VRAM Usage", val: "1.2 GB"},
-    19: {name: zh ? "系统内存占用率" : "System RAM Usage", val: performance.memory ? Math.round((performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit)*100) + "%" : "42%"},
-    20: {name: zh ? "可用系统内存" : "RAM Available", val: navigator.deviceMemory ? (navigator.deviceMemory * 0.6).toFixed(1) + " GB" : "4.8 GB"},
-    21: {name: zh ? "系统内存总量" : "System RAM Total", val: (navigator.deviceMemory || 8) + " GB"},
-    22: {name: zh ? "页面文件/虚拟内存" : "Page File / Swap", val: "2.1 GB"},
-    23: {name: zh ? "磁盘/存储占用率" : "Disk/Storage Usage", val: "64%"},
-    24: {name: zh ? "磁盘读取吞吐" : "Disk Read Speed", val: (120 + Math.random() * 10).toFixed(1) + " MB/s"},
-    25: {name: zh ? "磁盘写入吞吐" : "Disk Write Speed", val: (40 + Math.random() * 10).toFixed(1) + " MB/s"},
+// Fetch real public IP
+fetch('https://api.ipify.org?format=json')
+  .then(res => res.json())
+  .then(data => { document.getElementById('ipDisplay').innerText = data.ip; })
+  .catch(() => { document.getElementById('ipDisplay').innerText = '192.168.1.15 (Local)'; });
 
-    26: {name: zh ? "磁盘读取延迟" : "Disk Read Latency", val: (1.0 + Math.random() * 0.5).toFixed(1) + " ms"},
-    27: {name: zh ? "磁盘写入延迟" : "Disk Write Latency", val: (2.0 + Math.random() * 0.8).toFixed(1) + " ms"},
-    28: {name: zh ? "磁盘温度" : "Disk Temperature", val: "34 °C"},
-    29: {name: zh ? "加速度计 (X轴)" : "Accelerometer X", val: sensorState.accel.x + " m/s²"},
-    30: {name: zh ? "加速度计 (Y轴)" : "Accelerometer Y", val: sensorState.accel.y + " m/s²"},
-    31: {name: zh ? "加速度计 (Z轴)" : "Accelerometer Z", val: sensorState.accel.z + " m/s²"},
-    32: {name: zh ? "陀螺仪 (Pitch/X)" : "Gyroscope Pitch", val: sensorState.orientation.beta + " rad/s"},
-    33: {name: zh ? "陀螺仪 (Roll/Y)" : "Gyroscope Roll", val: sensorState.orientation.gamma + " rad/s"},
-    34: {name: zh ? "陀螺仪 (Yaw/Z)" : "Gyroscope Yaw", val: sensorState.orientation.alpha + " rad/s"},
-    35: {name: zh ? "磁力计 X 场" : "Magnetometer X", val: "24.5 µT"},
-    36: {name: zh ? "磁力计 Y 场" : "Magnetometer Y", val: "-12.1 µT"},
-    37: {name: zh ? "磁力计 Z 场" : "Magnetometer Z", val: "42.8 µT"},
-    38: {name: zh ? "气压计 (大气压)" : "Barometer Pressure", val: "1013.25 hPa"},
-    39: {name: zh ? "环境光传感器" : "Ambient Light Sensor", val: Math.round(300 + Math.random() * 100) + " lx"},
-    40: {name: zh ? "接近传感器距离" : "Proximity Distance", val: "5.0 cm"},
-    41: {name: zh ? "GPS 纬度" : "GPS Latitude", val: sensorState.gps.lat.toFixed(6) + "°"},
-    42: {name: zh ? "GPS 经度" : "GPS Longitude", val: sensorState.gps.lon.toFixed(6) + "°"},
-    43: {name: zh ? "GPS 海拔高度" : "GPS Altitude", val: sensorState.gps.alt.toFixed(1) + " m"},
-    44: {name: zh ? "GPS 地面速度" : "GPS Ground Speed", val: sensorState.gps.speed.toFixed(1) + " m/s"},
-    45: {name: zh ? "GPS 运动航向" : "GPS Bearing", val: "180.0°"},
-    46: {name: zh ? "GPS 垂直精度" : "GPS Vertical Accuracy", val: "3.2 m"},
-    47: {name: zh ? "GPS 水平精度" : "GPS Horizontal Accuracy", val: sensorState.gps.accuracy.toFixed(1) + " m"},
-    48: {name: zh ? "重力矢量 X" : "Gravity X", val: "0.00"},
-    49: {name: zh ? "重力矢量 Y" : "Gravity Y", val: "9.81"},
-    50: {name: zh ? "重力矢量 Z" : "Gravity Z", val: "0.00"},
-
-    51: {name: zh ? "线性加速度" : "Linear Acceleration", val: "0.02 m/s²"},
-    52: {name: zh ? "旋转矢量传感器" : "Rotation Vector", val: "Quaternion Active"},
-    53: {name: zh ? "电池电量百分比" : "Battery Percentage", val: sensorState.battery.level + "%"},
-    54: {name: zh ? "电池端子电压" : "Battery Voltage", val: "4.15 V"},
-    55: {name: zh ? "电池电流流速" : "Battery Current Flow", val: "-350 mA"},
-    56: {name: zh ? "电池内部温度" : "Battery Temperature", val: "31.5 °C"},
-    57: {name: zh ? "电源充电状态" : "Charging State", val: sensorState.battery.charging ? (zh ? "充电中" : "Charging") : (zh ? "放电中" : "Discharging")},
-    58: {name: zh ? "电池健康容量" : "Battery Health", val: "98%"},
-    59: {name: zh ? "电池剩余续航时间" : "Battery Time Remaining", val: "6h 45m"},
-    60: {name: zh ? "环境温度模拟" : "Ambient Temperature", val: "24.5 °C"},
-    61: {name: zh ? "环境相对湿度" : "Relative Humidity", val: "55%"},
-    62: {name: zh ? "麦克风声压级" : "Microphone Decibel", val: (-45 + Math.random() * 5).toFixed(1) + " dB"},
-    63: {name: zh ? "设备朝向 Alpha" : "Orientation Alpha", val: sensorState.orientation.alpha + "°"},
-    64: {name: zh ? "设备朝向 Beta" : "Orientation Beta", val: sensorState.orientation.beta + "°"},
-    65: {name: zh ? "设备朝向 Gamma" : "Orientation Gamma", val: sensorState.orientation.gamma + "°"},
-    66: {name: zh ? "计步器步数" : "Step Counter", val: "4,821 steps"},
-    67: {name: zh ? "单步触发器" : "Step Detector", val: "False"},
-    68: {name: zh ? "显著运动触发" : "Significant Motion", val: "True"},
-    69: {name: zh ? "主风扇转速" : "Fan 1 Speed", val: Math.round(2100 + Math.random() * 200) + " RPM"},
-    70: {name: zh ? "次风扇转速" : "Fan 2 Speed", val: "0 RPM"},
-    71: {name: zh ? "水冷泵转速" : "Pump Speed", val: "1800 RPM"},
-    72: {name: zh ? "主板温度" : "Motherboard Temp", val: "33.2 °C"},
-    73: {name: zh ? "NFC 无线状态" : "NFC Radio State", val: "Enabled"},
-    74: {name: zh ? "手电筒/闪光灯状态" : "Flashlight State", val: "Off"},
-    75: {name: zh ? "红外发射器状态" : "IR Blaster State", val: "Idle"},
-
-    76: {name: zh ? "Wi-Fi 热点名称 (SSID)" : "Wi-Fi SSID", val: "Secure_Network_5G"},
-    77: {name: zh ? "Wi-Fi 信号强度 RSSI" : "Wi-Fi RSSI", val: "-54 dBm"},
-    78: {name: zh ? "Wi-Fi 链路速率" : "Wi-Fi Link Speed", val: "866 Mbps"},
-    79: {name: zh ? "蜂窝网络信号强度" : "Cellular Signal RSRP", val: "-88 dBm"},
-    80: {name: zh ? "蜂窝网络技术类型" : "Cellular Network Type", val: "5G-NR"},
-    81: {name: zh ? "已配对蓝牙设备数" : "Bluetooth Devices", val: "3 devices"},
-    82: {name: zh ? "蓝牙信号 RSSI" : "Bluetooth RSSI", val: "-65 dBm"},
-    83: {name: zh ? "网络上行带宽" : "Network Upload Bandwidth", val: (40 + Math.random() * 10).toFixed(1) + " Mbps"},
-    84: {name: zh ? "网络下行带宽" : "Network Download Bandwidth", val: (170 + Math.random() * 20).toFixed(1) + " Mbps"},
-    85: {name: zh ? "已发送网络数据包" : "Network Packets Sent", val: "14,209"},
-    86: {name: zh ? "已接收网络数据包" : "Network Packets Recv", val: "28,410"},
-    87: {name: zh ? "屏幕亮度等级" : "Screen Brightness", val: "80%"},
-    88: {name: zh ? "屏幕刷新率" : "Screen Refresh Rate", val: (window.screen.refreshRate || 60) + " Hz"},
-    89: {name: zh ? "屏幕分辨率宽度" : "Screen Width", val: window.screen.width + " px"},
-    90: {name: zh ? "屏幕分辨率高度" : "Screen Height", val: window.screen.height + " px"},
-    91: {name: zh ? "光学心率 (PPG)" : "Heart Rate (PPG)", val: Math.round(72 + Math.random() * 4) + " BPM"},
-    92: {name: zh ? "血氧饱和度 (SpO2)" : "Blood Oxygen", val: "98%"},
-    93: {name: zh ? "指纹识别传感器" : "Fingerprint Sensor", val: "Active"},
-    94: {name: zh ? "人脸识别状态" : "Face Recognition", val: "Standby"},
-    95: {name: zh ? "操作系统运行时间" : "OS Uptime", val: Math.floor(performance.now() / 1000) + " s"},
-    96: {name: zh ? "活跃运行进程数" : "Active Processes", val: "142"},
-    97: {name: zh ? "活跃线程总数" : "Active Threads", val: "1,204"},
-    98: {name: zh ? "本地局域网 IP" : "Local IP Address", val: "192.168.1.105"},
-    99: {name: zh ? "SIM卡就绪状态" : "SIM Card Status", val: "Ready / Active"},
-    100: {name: zh ? "设备静音物理开关" : "Device Mute Switch", val: "Unmuted"},
-
-    101: {name: zh ? "环境紫外线指数 (UV)" : "UV Index", val: "3.2"},
-    102: {name: zh ? "空气质量 PM2.5" : "Air Quality PM2.5", val: "12 µg/m³"},
-    103: {name: zh ? "空气质量 PM10" : "Air Quality PM10", val: "22 µg/m³"},
-    104: {name: zh ? "声学环境噪音均值" : "Ambient Noise Level", val: "48 dB"},
-    105: {name: zh ? "震动反馈引擎状态" : "Haptic Engine State", val: "Standby"},
-    106: {name: zh ? "触控采样率" : "Touch Sampling Rate", val: "240 Hz"},
-    107: {name: zh ? "触控多点触控点数" : "Active Touch Points", val: "0 points"},
-    108: {name: zh ? "前置摄像头状态" : "Front Camera State", val: "Idle"},
-    109: {name: zh ? "后置广角镜头状态" : "Rear Camera State", val: "Idle"},
-    110: {name: zh ? "图像信号处理器 (ISP) 负载" : "ISP Load", val: (2.0 + Math.random()).toFixed(1) + "%"},
-    111: {name: zh ? "神经处理单元 (NPU) 占用" : "NPU Utilization", val: (4.0 + Math.random() * 2).toFixed(1) + "%"},
-    112: {name: zh ? "数字信号处理器 (DSP) 负载" : "DSP Load", val: "1.2%"},
-    113: {name: zh ? "硬件安全模块 (HSM) 状态" : "HSM Secure State", val: "Locked / Secure"},
-    114: {name: zh ? "可信执行环境 (TEE) 状态" : "TEE Active State", val: "Running"},
-    115: {name: zh ? "引导加载程序 (Bootloader)" : "Bootloader Status", val: "Locked"},
-    116: {name: zh ? "SELinux 强制策略模式" : "SELinux Policy Mode", val: "Enforcing"},
-    117: {name: zh ? "根目录文件系统状态" : "Root FS Status", val: "Read-Write"},
-    118: {name: zh ? "动态内存分配池大小" : "Dynamic Heap Pool", val: "512 MB"},
-    119: {name: zh ? "垃圾回收器 (GC) 运行次数" : "GC Execution Count", val: "14 times"},
-    120: {name: zh ? "主线程渲染帧率 (FPS)" : "UI Render FPS", val: (59.0 + Math.random()).toFixed(1) + " FPS"},
-    121: {name: zh ? "丢帧次数统计" : "Dropped Frames Count", val: "0 frames"},
-    122: {name: zh ? "GPU 渲染管线深度" : "GPU Pipeline Depth", val: "3 queues"},
-    123: {name: zh ? "图形API渲染模式" : "Graphics API Mode", val: "WebGL 2.0 / Vulkan"},
-    124: {name: zh ? "着色器编译缓存大小" : "Shader Cache Size", val: "45.2 MB"},
-    125: {name: zh ? "硬件加速叠加层数" : "Hardware Overlay Count", val: "4 layers"},
-
-    126: {name: zh ? "内核版本底层代码" : "Kernel Build Version", val: "5.15.0-generic"},
-    127: {name: zh ? "系统中断请求 (IRQ) 总数" : "Total IRQ Count", val: "18,421"},
-    128: {name: zh ? "上下文切换频率" : "Context Switch Rate", val: "1,450 /s"},
-    129: {name: zh ? "页面错误率 (Page Faults)" : "Page Fault Rate", val: "12 /s"},
-    130: {name: zh ? "I/O 挂起队列长度" : "I/O Block Queue Depth", val: "0"},
-    131: {name: zh ? "网络套接字活跃数" : "Active Sockets", val: "24 sockets"},
-    132: {name: zh ? "TCP 连接重传率" : "TCP Retransmit Rate", val: "0.01%"},
-    133: {name: zh ? "DNS 解析缓存命中率" : "DNS Cache Hit Rate", val: "94%"},
-    134: {name: zh ? "HTTPS 证书握手延迟" : "TLS Handshake Latency", val: "35 ms"},
-    135: {name: zh ? "代理隧道连接状态" : "Proxy Tunnel Status", val: "Direct / None"},
-    136: {name: zh ? "防火墙拦截包统计" : "Firewall Block Count", val: "0 packets"},
-    137: {name: zh ? "VPN 虚拟网卡接口状态" : "VPN Tunnel Interface", val: "Disconnected"},
-    138: {name: zh ? "本地网卡双工模式" : "NIC Duplex Mode", val: "Full Duplex"},
-    139: {name: zh ? "以太网物理链路状态" : "Ethernet Physical Link", val: "Disconnected"},
-    140: {name: zh ? "无线信道频率编号" : "Wi-Fi Channel Frequency", val: "Channel 36 (5 GHz)"},
-    141: {name: zh ? "蜂窝漫游状态" : "Cellular Roaming State", val: "Home Network"},
-    142: {name: zh ? "基带调制解调器固件" : "Baseband Modem FW", val: "MDM9650-PRO"},
-    143: {name: zh ? "地理围栏触发状态" : "Geofencing Trigger", val: "Inside Boundary"},
-    144: {name: zh ? "重力感应校准偏移量" : "Gravity Sensor Offset", val: "[0.01, 0.02, -0.01]"},
-    145: {name: zh ? "陀螺仪零偏校准值" : "Gyroscope Bias Drift", val: "[0.001, -0.002, 0.000]"},
-    146: {name: zh ? "罗盘磁偏角补偿" : "Compass Declination", val: "0.45°"},
-    147: {name: zh ? "气压测算海拔修正值" : "Barometric Altitude Offset", val: "+2.4 m"},
-    148: {name: zh ? "光学测距传感器状态" : "ToF Laser Ranging", val: "Active (1.2m)"},
-    149: {name: zh ? "心率血氧芯片温度" : "PPG Sensor Temp", val: "32.4 °C"},
-    150: {name: zh ? "环境光色温传感器 (CCT)" : "Color Temperature (CCT)", val: "4500K (Neutral)"},
-
-    151: {name: zh ? "USB 控制器传输模式" : "USB Controller Mode", val: "USB 3.1 Gen 2"},
-    152: {name: zh ? "外接显示器连接数" : "External Displays Count", val: "0 displays"},
-    153: {name: zh ? "雷电/Type-C 供电功率" : "Type-C Power Delivery", val: "18.5 W"},
-    154: {name: zh ? "音频输出采样率" : "Audio Output Sample Rate", val: "48000 Hz"},
-    155: {name: zh ? "音频输入通道数" : "Audio Input Channels", val: "2 Channels (Stereo)"},
-    156: {name: zh ? "扬声器阻抗状态" : "Speaker Impedance", val: "8.0 ohms"},
-    157: {name: zh ? "耳机插孔物理状态" : "Headphone Jack State", val: "Unplugged"},
-    158: {name: zh ? "震动马达峰值电压" : "Haptic Motor Voltage", val: "2.8 V"},
-    159: {name: zh ? "指纹模组通信响应时间" : "Fingerprint Response", val: "45 ms"},
-    160: {name: zh ? "面部红外补光灯状态" : "Face IR Floodlight", val: "Off"},
-    161: {name: zh ? "闪存主控磨损均衡计数" : "Flash Wear Leveling", val: "1.2%"},
-    162: {name: zh ? "闪存坏块坏道数量" : "NAND Bad Blocks", val: "0 blocks"},
-    163: {name: zh ? "PCIe 总线通道速率" : "PCIe Bus Link Speed", val: "PCIe 4.0 x4"},
-    164: {name: zh ? "I2C 总线设备挂载数" : "I2C Bus Devices", val: "12 devices"},
-    165: {name: zh ? "SPI 总线吞吐状态" : "SPI Bus Throughput", val: "12.5 Mbps"},
-    166: {name: zh ? "UART 串口调试波特率" : "UART Baud Rate", val: "115200 bps"},
-    167: {name: zh ? "电源管理集成电路 (PMIC)" : "PMIC Temperature", val: "36.5 °C"},
-    168: {name: zh ? "无线充电线圈谐振频率" : "Wireless Charging Coil", val: "127 kHz"},
-    169: {name: zh ? "无线充电传输效率" : "Wireless Charging Efficiency", val: "76.5%"},
-    170: {name: zh ? "快充协议握手状态" : "Fast Charge Protocol", val: "PD 3.0 Active"},
-    171: {name: zh ? "电池库仑计统计电量" : "Coulomb Counter Charge", val: "100% (Calibrated)"},
-    172: {name: zh ? "屏幕偏光片温度" : "Panel Polarizer Temp", val: "29.1 °C"},
-    173: {name: zh ? "背光驱动芯片电流" : "Backlight Driver Current", val: "150 mA"},
-    174: {name: zh ? "全屏色彩空间模式" : "Color Gamut Profile", val: "Display P3 Wide"},
-    175: {name: zh ? "HDR 动态元数据支持" : "HDR Metadata Support", val: "HDR10+ / Dolby Vision"},
-
-    176: {name: zh ? "容器运行时环境" : "Container Runtime", val: "Docker / containerd"},
-    177: {name: zh ? "活跃隔离容器数量" : "Active Containers", val: "0 containers"},
-    178: {name: zh ? "虚拟机管理程序 (Hypervisor)" : "Hypervisor Type", val: "KVM / Native"},
-    179: {name: zh ? "虚拟CPU核心分配数" : "vCPU Allocation", val: "8 vCPUs"},
-    180: {name: zh ? "云端同步长连接状态" : "Cloud Sync Socket", val: "Connected (TLS 1.3)"},
-    181: {name: zh ? "API 网关延迟均值" : "API Gateway Latency", val: "18 ms"},
-    182: {name: zh ? "本地数据缓存容量" : "Local Data Cache Size", val: "128 MB"},
-    183: {name: zh ? "日志滚动重定向状态" : "Log Rotation Status", val: "Active (Max 10MB)"},
-    184: {name: zh ? "多线程调度队列长度" : "Scheduler Run Queue", val: "1 task"},
-    185: {name: zh ? "内存页面回收效率" : "Memory Page reclaim rate", val: "99.2%"},
-    186: {name: zh ? "共享内存 (Shm) 占用" : "Shared Memory Usage", val: "16.4 MB"},
-    187: {name: zh ? "文件描述符占用数" : "File Descriptors Open", val: "482 / 65535"},
-    188: {name: zh ? "进程实时优先级状态" : "Process Real-time Priority", val: "Normal (Nice 0)"},
-    189: {name: zh ? "系统安全审计守护进程" : "Auditd Daemon Status", val: "Running"},
-    190: {name: zh ? "动态链接库加载数量" : "Loaded Shared Libraries", val: "84 libs"},
-    191: {name: zh ? "应用沙箱隔离等级" : "App Sandbox Level", val: "Strict Isolation"},
-    192: {name: zh ? "硬件序列号哈希校验" : "Hardware UUID Hash", val: "a9f82b1c...e4"},
-    193: {name: zh ? "固件安全启动时间" : "Secure Boot Time", val: "320 ms"},
-    194: {name: zh ? "远程调试接口状态" : "Remote Debugging Port", val: "Closed / Disabled"},
-    195: {name: zh ? "崩溃转储 (Core Dump) 状态" : "Core Dump Handler", val: "Enabled (Compressed)"},
-    196: {name: zh ? "网络吞吐峰值历史记录" : "Peak Network Throughput", val: "210 Mbps"},
-    197: {name: zh ? "磁盘寿命预计剩余百分比" : "Estimated SSD Endurance", val: "99.5%"},
-    198: {name: zh ? "散热片热传导效率评估" : "Heatsink Thermal Efficiency", val: "Optimal (Grade A)"},
-    199: {name: zh ? "系统综合健康评级指数" : "System Composite Health", val: "99.8 / 100"},
-    200: {name: zh ? "遥测数据引擎响应心跳" : "Telemetry Heartbeat Status", val: "OK (10.0 Hz Active)"}
-  };
-
-  lastParamsData = p;
-  renderActiveTab(p);
+function switchTab(index) {
+  activeTab = index;
+  document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+    btn.classList.toggle('active', idx === index);
+  });
+  document.querySelectorAll('.tab-content').forEach((content, idx) => {
+    content.style.display = (idx === index) ? 'block' : 'none';
+  });
 }
 
-function renderActiveTab(p) {
-  let startIdx = activeTab * 25 + 1;
-  let endIdx = startIdx + 24;
-  let itemsHtml = [];
+function updateTelemetryData() {
+  // Simulate natural fluctuations for hardware metrics
+  sensorData.cpu = Math.min(95, Math.max(10, sensorData.cpu + (Math.random() * 10 - 5)));
+  sensorData.gpu = Math.min(90, Math.max(5, sensorData.gpu + (Math.random() * 12 - 6)));
+  sensorData.download = Math.max(5, sensorData.download + (Math.random() * 20 - 10));
+  sensorData.upload = Math.max(2, sensorData.upload + (Math.random() * 8 - 4));
+  sensorData.light = Math.max(10, sensorData.light + (Math.random() * 20 - 10));
+  sensorData.pressure = 1013 + (Math.random() * 2 - 1);
+  sensorData.mic = -50 + (Math.random() * 10);
 
-  for(let i = startIdx; i <= endIdx; i++) {
-    itemsHtml.push(`<div class="result-item"><small>[${i}] ${p[i].name}</small><b>${p[i].val}</b></div>`);
+  // Push to histories based on active tab to maintain 10Hz performance & sleep inactive tabs
+  if(activeTab === 0) {
+    pushHistory('cpu', sensorData.cpu);
+    pushHistory('gpu', sensorData.gpu);
+    pushHistory('download', sensorData.download);
+    pushHistory('upload', sensorData.upload);
+    
+    drawLineChart('chartCpuGpu', [historyData.cpu, historyData.gpu], ['#d8b36a', '#58a6ff'], 0, 100);
+    drawLineChart('chartDownload', [historyData.download], ['#72b08a'], 0, 200);
+    drawLineChart('chartUpload', [historyData.upload], ['#d8b36a'], 0, 100);
+  } else if(activeTab === 1) {
+    pushHistory('accelX', sensorData.accelX);
+    pushHistory('accelY', sensorData.accelY);
+    pushHistory('accelZ', sensorData.accelZ);
+    pushHistory('gyroX', sensorData.gyroX);
+    pushHistory('gyroY', sensorData.gyroY);
+    pushHistory('gyroZ', sensorData.gyroZ);
+    pushHistory('mag', 45 + Math.random() * 2);
+
+    drawLineChart('chartAccel', [historyData.accelX, historyData.accelY, historyData.accelZ], ['#ff7b72', '#72b08a', '#58a6ff'], -20, 20);
+    drawLineChart('chartGyro', [historyData.gyroX, historyData.gyroY, historyData.gyroZ], ['#ff7b72', '#72b08a', '#58a6ff'], -180, 180);
+    drawLineChart('chartMag', [historyData.mag], ['#d8b36a'], 30, 60);
+  } else if(activeTab === 2) {
+    pushHistory('pressure', sensorData.pressure - 1000);
+    pushHistory('light', sensorData.light / 10);
+    pushHistory('mic', sensorData.mic);
+    pushHistory('gpsSpeed', sensorData.gpsSpeed);
+    pushHistory('gpsAlt', sensorData.gpsAlt);
+
+    drawLineChart('chartEnv', [historyData.pressure, historyData.light], ['#58a6ff', '#d8b36a'], 0, 50);
+    drawLineChart('chartMic', [historyData.mic], ['#ff7b72'], -70, 0);
+    drawLineChart('chartGps', [historyData.gpsSpeed, historyData.gpsAlt], ['#72b08a', '#58a6ff'], 0, 50);
   }
-
-  document.getElementById(`grid${activeTab + 1}`).innerHTML = itemsHtml.join('');
-  updateGoogleMap(sensorState.gps.lat, sensorState.gps.lon);
 }
 
-// Initialize default tab on load
-window.onload = function() {
-  switchTab(0);
-};
+function pushHistory(key, val) {
+  historyData[key].push(val);
+  if(historyData[key].length > maxPoints) historyData[key].shift();
+}
+
+function drawLineChart(canvasId, datasets, colors, minVal, maxVal) {
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.parentElement.clientWidth;
+  const h = canvas.height = canvas.parentElement.clientHeight;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Draw grid lines
+  ctx.strokeStyle = '#273244';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, h/2); ctx.lineTo(w, h/2);
+  ctx.stroke();
+
+  datasets.forEach((data, idx) => {
+    ctx.strokeStyle = colors[idx];
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const step = w / (maxPoints - 1);
+    data.forEach((val, i) => {
+      const x = i * step;
+      const y = h - ((val - minVal) / (maxVal - minVal || 1)) * h;
+      if(i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  });
+}
+
+// 10Hz Loop (100ms)
+loopTimer = setInterval(updateTelemetryData, 100);
 </script>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDEXzr0g21dXaFuw0ikKmaljtvi9xtRBos&callback=initGoogleMap" async defer></script>
 </body>
 </html>
