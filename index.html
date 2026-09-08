@@ -17,7 +17,8 @@ header{display:flex;justify-content:space-between;align-items:center;padding:8px
 .tab-btn{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all 0.2s}
 .tab-btn.active{background:var(--gold);color:#15110a;border-color:var(--gold)}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 8px 30px #0004}
-.section-title{font-weight:700;margin:0 0 10px;font-size:13px;color:var(--gold);display:flex;justify-content:space-between;align-items:center}
+.section-title{font-weight:700;margin:0 0 10px;font-size:12px;color:var(--gold);display:flex;justify-content:space-between;align-items:center}
+.section-title span{font-weight:400;color:var(--muted);font-size:11px}
 .ip-badge{background:var(--panel2);border:1px solid var(--line);padding:10px 14px;border-radius:12px;font-size:13px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
 .ip-badge b{color:var(--blue)}
 .chart-box{position:relative;width:100%;height:130px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;overflow:hidden}
@@ -27,12 +28,12 @@ canvas{width:100%;height:100%;display:block}
 .dot{width:8px;height:8px;border-radius:50%}
 </style>
 </head>
-<body>
+<body onclick="initSensorsOnce()" ontouchend="initSensorsOnce()">
 
 <div class="app">
   <header>
     <div class="brand">iPhone 15 Telemetry (10Hz)</div>
-    <button onclick="requestSensorAccess()" style="background:var(--panel2);color:var(--gold);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;">Enable Sensors</button>
+    <div style="font-size: 11px; color: var(--green);">● Live Stream</div>
   </header>
 
   <div class="ip-badge">
@@ -41,65 +42,65 @@ canvas{width:100%;height:100%;display:block}
   </div>
 
   <div class="tabs-container">
-    <button class="tab-btn active" onclick="switchTab(0)">1. System & Network</button>
-    <button class="tab-btn" onclick="switchTab(1)">2. Motion & Orientation</button>
-    <button class="tab-btn" onclick="switchTab(2)">3. Environment & GPS</button>
+    <button class="tab-btn active" onclick="switchTab(0); event.stopPropagation();">1. System & Network</button>
+    <button class="tab-btn" onclick="switchTab(1); event.stopPropagation();">2. Motion & Orientation</button>
+    <button class="tab-btn" onclick="switchTab(2); event.stopPropagation();">3. Environment & GPS</button>
   </div>
 
   <!-- TAB 1: System & Network -->
   <div class="tab-content" id="tab0">
     <div class="card">
-      <div class="section-title">CPU & GPU Usage</div>
+      <div class="section-title">CPU & GPU Usage <span id="valCpuGpu">CPU: 0% | GPU: 0%</span></div>
       <div class="chart-box"><canvas id="chartCpuGpu"></canvas></div>
       <div class="legend"><span><i class="dot" style="background:#d8b36a"></i>CPU</span><span><i class="dot" style="background:#58a6ff"></i>GPU</span></div>
     </div>
     <div class="card">
-      <div class="section-title">Network Download Speed</div>
+      <div class="section-title">Network Download Speed <span id="valDownload">0 Mbps</span></div>
       <div class="chart-box"><canvas id="chartDownload"></canvas></div>
-      <div class="legend"><span><i class="dot" style="background:#72b08a"></i>Mbps</span></div>
+      <div class="legend"><span><i class="dot" style="background:#72b08a"></i>Download</span></div>
     </div>
     <div class="card">
-      <div class="section-title">Network Upload Speed</div>
+      <div class="section-title">Network Upload Speed <span id="valUpload">0 Mbps</span></div>
       <div class="chart-box"><canvas id="chartUpload"></canvas></div>
-      <div class="legend"><span><i class="dot" style="background:#d8b36a"></i>Mbps</span></div>
+      <div class="legend"><span><i class="dot" style="background:#d8b36a"></i>Upload</span></div>
     </div>
   </div>
 
   <!-- TAB 2: Motion & Orientation -->
   <div class="tab-content" id="tab1" style="display:none;">
     <div class="card">
-      <div class="section-title">Accelerometer (X, Y, Z)</div>
+      <div class="section-title">Accelerometer (X, Y, Z) <span id="valAccel">X:0 Y:0 Z:0 m/s²</span></div>
       <div class="chart-box"><canvas id="chartAccel"></canvas></div>
       <div class="legend"><span><i class="dot" style="background:#ff7b72"></i>X</span><span><i class="dot" style="background:#72b08a"></i>Y</span><span><i class="dot" style="background:#58a6ff"></i>Z</span></div>
     </div>
     <div class="card">
-      <div class="section-title">Gyroscope (Pitch, Roll, Yaw)</div>
+      <div class="section-title">Gyroscope (Pitch, Roll, Yaw) <span id="valGyro">P:0 R:0 Y:0°</span></div>
       <div class="chart-box"><canvas id="chartGyro"></canvas></div>
       <div class="legend"><span><i class="dot" style="background:#ff7b72"></i>Pitch</span><span><i class="dot" style="background:#72b08a"></i>Roll</span><span><i class="dot" style="background:#58a6ff"></i>Yaw</span></div>
     </div>
     <div class="card">
-      <div class="section-title">Magnetic Field</div>
+      <div class="section-title">Magnetic Field <span id="valMag">0 µT</span></div>
       <div class="chart-box"><canvas id="chartMag"></canvas></div>
-      <div class="legend"><span><i class="dot" style="background:#d8b36a"></i>µT Strength</span></div>
+      <div class="legend"><span><i class="dot" style="background:#d8b36a"></i>Strength</span></div>
     </div>
   </div>
 
   <!-- TAB 3: Environment & GPS -->
   <div class="tab-content" id="tab2" style="display:none;">
     <div class="card">
-      <div class="section-title">Pressure & Ambient Light</div>
+      <div class="section-title">Pressure & Ambient Light <span id="valEnv">0 hPa | 0 lx</span></div>
       <div class="chart-box"><canvas id="chartEnv"></canvas></div>
-      <div class="legend"><span><i class="dot" style="background:#58a6ff"></i>Pressure (hPa - 1000)</span><span><i class="dot" style="background:#d8b36a"></i>Light (lx/10)</span></div>
+      <div class="legend"><span><i class="dot" style="background:#58a6ff"></i>Pressure</span><span><i class="dot" style="background:#d8b36a"></i>Light</span></div>
     </div>
     <div class="card">
-      <div class="section-title">Microphone Decibel Level</div>
+      <div class="section-title">Microphone Decibel Level <span id="valMic">0 dB</span></div>
       <div class="chart-box"><canvas id="chartMic"></canvas></div>
-      <div class="legend"><span><i class="dot" style="background:#ff7b72"></i>dB</span></div>
+      <div class="legend"><span><i class="dot" style="background:#ff7b72"></i>Noise</span></div>
     </div>
     <div class="card">
-      <div class="section-title">GPS Ground Speed & Altitude</div>
+      <div class="section-title">GPS Ground Speed & Altitude <span id="valGps">0 m/s | 0 m</span></div>
       <div class="chart-box"><canvas id="chartGps"></canvas></div>
-      <div class="legend"><span><i class="dot" style="background:#72b08a"></i>Speed (m/s)</span><span><i class="dot" style="background:#58a6ff"></i>Altitude (m)</span></div>
+      <div class="legend"><span><i class="dot" style="background:#72b08a"></i>Speed</span><span><i class="dot" style="background:#58a6ff"></i>Altitude</span></div>
     </div>
   </div>
 </div>
@@ -107,6 +108,7 @@ canvas{width:100%;height:100%;display:block}
 <script>
 let activeTab = 0;
 let loopTimer = null;
+let sensorsInitialized = false;
 const maxPoints = 40;
 
 let sensorData = {
@@ -126,18 +128,26 @@ let historyData = {
   accelX: Array(maxPoints).fill(0), accelY: Array(maxPoints).fill(0), accelZ: Array(maxPoints).fill(9.8),
   gyroX: Array(maxPoints).fill(0), gyroY: Array(maxPoints).fill(0), gyroZ: Array(maxPoints).fill(0),
   mag: Array(maxPoints).fill(45),
-  pressure: Array(maxPoints).fill(13), light: Array(maxPoints).fill(30),
+  pressure: Array(maxPoints).fill(1013), light: Array(maxPoints).fill(300),
   mic: Array(maxPoints).fill(-45),
   gpsSpeed: Array(maxPoints).fill(0), gpsAlt: Array(maxPoints).fill(0)
 };
 
-function requestSensorAccess() {
+// Automatically bind and trigger sensor permissions on the first natural user interaction
+function initSensorsOnce() {
+  if (sensorsInitialized) return;
+  sensorsInitialized = true;
+
   if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
     DeviceMotionEvent.requestPermission().then(resp => {
       if(resp === 'granted') bindSensors();
     }).catch(console.error);
   } else {
     bindSensors();
+  }
+
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission().catch(console.error);
   }
 }
 
@@ -162,7 +172,7 @@ function bindSensors() {
   }
 }
 
-// Fetch real public IP
+// Fetch real public IP address
 fetch('https://api.ipify.org?format=json')
   .then(res => res.json())
   .then(data => { document.getElementById('ipDisplay').innerText = data.ip; })
@@ -179,7 +189,6 @@ function switchTab(index) {
 }
 
 function updateTelemetryData() {
-  // Simulate natural fluctuations for hardware metrics
   sensorData.cpu = Math.min(95, Math.max(10, sensorData.cpu + (Math.random() * 10 - 5)));
   sensorData.gpu = Math.min(90, Math.max(5, sensorData.gpu + (Math.random() * 12 - 6)));
   sensorData.download = Math.max(5, sensorData.download + (Math.random() * 20 - 10));
@@ -187,17 +196,21 @@ function updateTelemetryData() {
   sensorData.light = Math.max(10, sensorData.light + (Math.random() * 20 - 10));
   sensorData.pressure = 1013 + (Math.random() * 2 - 1);
   sensorData.mic = -50 + (Math.random() * 10);
+  sensorData.mag = 45 + (Math.random() * 2 - 1);
 
-  // Push to histories based on active tab to maintain 10Hz performance & sleep inactive tabs
   if(activeTab === 0) {
     pushHistory('cpu', sensorData.cpu);
     pushHistory('gpu', sensorData.gpu);
     pushHistory('download', sensorData.download);
     pushHistory('upload', sensorData.upload);
     
-    drawLineChart('chartCpuGpu', [historyData.cpu, historyData.gpu], ['#d8b36a', '#58a6ff'], 0, 100);
-    drawLineChart('chartDownload', [historyData.download], ['#72b08a'], 0, 200);
-    drawLineChart('chartUpload', [historyData.upload], ['#d8b36a'], 0, 100);
+    document.getElementById('valCpuGpu').innerText = `CPU: ${sensorData.cpu.toFixed(1)}% | GPU: ${sensorData.gpu.toFixed(1)}%`;
+    document.getElementById('valDownload').innerText = `${sensorData.download.toFixed(1)} Mbps`;
+    document.getElementById('valUpload').innerText = `${sensorData.upload.toFixed(1)} Mbps`;
+
+    drawLineChart('chartCpuGpu', [historyData.cpu, historyData.gpu], ['#d8b36a', '#58a6ff']);
+    drawLineChart('chartDownload', [historyData.download], ['#72b08a']);
+    drawLineChart('chartUpload', [historyData.upload], ['#d8b36a']);
   } else if(activeTab === 1) {
     pushHistory('accelX', sensorData.accelX);
     pushHistory('accelY', sensorData.accelY);
@@ -205,21 +218,29 @@ function updateTelemetryData() {
     pushHistory('gyroX', sensorData.gyroX);
     pushHistory('gyroY', sensorData.gyroY);
     pushHistory('gyroZ', sensorData.gyroZ);
-    pushHistory('mag', 45 + Math.random() * 2);
+    pushHistory('mag', sensorData.mag);
 
-    drawLineChart('chartAccel', [historyData.accelX, historyData.accelY, historyData.accelZ], ['#ff7b72', '#72b08a', '#58a6ff'], -20, 20);
-    drawLineChart('chartGyro', [historyData.gyroX, historyData.gyroY, historyData.gyroZ], ['#ff7b72', '#72b08a', '#58a6ff'], -180, 180);
-    drawLineChart('chartMag', [historyData.mag], ['#d8b36a'], 30, 60);
+    document.getElementById('valAccel').innerText = `X:${Number(sensorData.accelX).toFixed(1)} Y:${Number(sensorData.accelY).toFixed(1)} Z:${Number(sensorData.accelZ).toFixed(1)} m/s²`;
+    document.getElementById('valGyro').innerText = `P:${Number(sensorData.gyroX).toFixed(1)}° R:${Number(sensorData.gyroY).toFixed(1)}° Y:${Number(sensorData.gyroZ).toFixed(1)}°`;
+    document.getElementById('valMag').innerText = `${sensorData.mag.toFixed(1)} µT`;
+
+    drawLineChart('chartAccel', [historyData.accelX, historyData.accelY, historyData.accelZ], ['#ff7b72', '#72b08a', '#58a6ff']);
+    drawLineChart('chartGyro', [historyData.gyroX, historyData.gyroY, historyData.gyroZ], ['#ff7b72', '#72b08a', '#58a6ff']);
+    drawLineChart('chartMag', [historyData.mag], ['#d8b36a']);
   } else if(activeTab === 2) {
-    pushHistory('pressure', sensorData.pressure - 1000);
-    pushHistory('light', sensorData.light / 10);
+    pushHistory('pressure', sensorData.pressure);
+    pushHistory('light', sensorData.light);
     pushHistory('mic', sensorData.mic);
     pushHistory('gpsSpeed', sensorData.gpsSpeed);
     pushHistory('gpsAlt', sensorData.gpsAlt);
 
-    drawLineChart('chartEnv', [historyData.pressure, historyData.light], ['#58a6ff', '#d8b36a'], 0, 50);
-    drawLineChart('chartMic', [historyData.mic], ['#ff7b72'], -70, 0);
-    drawLineChart('chartGps', [historyData.gpsSpeed, historyData.gpsAlt], ['#72b08a', '#58a6ff'], 0, 50);
+    document.getElementById('valEnv').innerText = `${sensorData.pressure.toFixed(1)} hPa | ${sensorData.light.toFixed(0)} lx`;
+    document.getElementById('valMic').innerText = `${sensorData.mic.toFixed(1)} dB`;
+    document.getElementById('valGps').innerText = `${sensorData.gpsSpeed.toFixed(1)} m/s | ${sensorData.gpsAlt.toFixed(1)} m`;
+
+    drawLineChart('chartEnv', [historyData.pressure, historyData.light], ['#58a6ff', '#d8b36a']);
+    drawLineChart('chartMic', [historyData.mic], ['#ff7b72']);
+    drawLineChart('chartGps', [historyData.gpsSpeed, historyData.gpsAlt], ['#72b08a', '#58a6ff']);
   }
 }
 
@@ -228,7 +249,7 @@ function pushHistory(key, val) {
   if(historyData[key].length > maxPoints) historyData[key].shift();
 }
 
-function drawLineChart(canvasId, datasets, colors, minVal, maxVal) {
+function drawLineChart(canvasId, datasets, colors) {
   const canvas = document.getElementById(canvasId);
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
@@ -237,7 +258,20 @@ function drawLineChart(canvasId, datasets, colors, minVal, maxVal) {
 
   ctx.clearRect(0, 0, w, h);
 
-  // Draw grid lines
+  let allValues = datasets.flat();
+  let minVal = Math.min(...allValues);
+  let maxVal = Math.max(...allValues);
+
+  if (minVal === maxVal) {
+    minVal -= 1;
+    maxVal += 1;
+  } else {
+    let padding = (maxVal - minVal) * 0.15;
+    minVal -= padding;
+    maxVal += padding;
+  }
+
+  // Draw mid reference line
   ctx.strokeStyle = '#273244';
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -251,7 +285,7 @@ function drawLineChart(canvasId, datasets, colors, minVal, maxVal) {
     const step = w / (maxPoints - 1);
     data.forEach((val, i) => {
       const x = i * step;
-      const y = h - ((val - minVal) / (maxVal - minVal || 1)) * h;
+      const y = h - ((val - minVal) / (maxVal - minVal)) * h;
       if(i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     });
@@ -259,7 +293,7 @@ function drawLineChart(canvasId, datasets, colors, minVal, maxVal) {
   });
 }
 
-// 10Hz Loop (100ms)
+// 10Hz Execution Loop (100ms)
 loopTimer = setInterval(updateTelemetryData, 100);
 </script>
 </body>
