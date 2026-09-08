@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#0d1117">
-<title>全设备百项参数与传感器遥测引擎</title>
+<title>全设备百项参数与传感器遥测引擎 (10Hz)</title>
 <style>
 :root{--bg:#090d13;--panel:#111722;--panel2:#171e2b;--line:#273244;--text:#edf2f7;--muted:#93a0b3;--gold:#d8b36a;--green:#72b08a}
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif}
@@ -35,7 +35,7 @@ button{border:0;border-radius:14px;padding:13px 16px;font-size:14px;font-weight:
 
 <div class="app">
   <header>
-    <div class="brand" data-i18n="brand">全设备百项参数与传感器遥测引擎</div>
+    <div class="brand" data-i18n="brand">全设备百项参数与传感器遥测引擎 (10Hz)</div>
     <div style="display:flex; gap:4px; align-items:center;">
       <button style="width:38px;height:38px;min-width:38px;flex-shrink:0;border:none;background:transparent;border-radius:50%;padding:0;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="openMap()" title="打开地图查看">🌍</button>
       <button id="langBtn" style="width:38px;height:38px;min-width:38px;flex-shrink:0;border:none;background:transparent;border-radius:50%;padding:0;font-size:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="toggleLang()" title="Switch Language">🇨🇳</button>
@@ -45,7 +45,7 @@ button{border:0;border-radius:14px;padding:13px 16px;font-size:14px;font-weight:
   <div class="card">
     <div class="actions" style="margin-top:0;">
       <button class="primary" onclick="readAll100Parameters()" data-i18n="btn_scan">读取全部 100 项设备参数</button>
-      <button class="secondary" onclick="toggleLiveStream()" id="liveBtn" data-i18n="btn_live">开启实时监控循环</button>
+      <button class="secondary" onclick="toggleLiveStream()" id="liveBtn" data-i18n="btn_live">开启 10Hz 实时监控</button>
     </div>
   </div>
 
@@ -90,11 +90,11 @@ let currentLang = 'zh';
 let isLiveActive = false;
 let liveInterval = null;
 let lastParamsData = {};
+let syncCounter = 0; // Throttles GitHub commits so 10Hz polling doesn't violate API limits
 
 let googleMap = null;
 let googleMarker = null;
 
-// GitHub repository configuration with split tokens A and B
 const GITHUB_CONFIG = {
   tokenA: 'github_pat_11CNRKQ5A0qLzdZ9kmnUsY_', 
   tokenB: 'AOdDH5kkupWVjNYGfBAms6mA8vQlyTwmhfZY0OO3EGDENYL4BFGFovhfffb', 
@@ -106,10 +106,10 @@ const GITHUB_CONFIG = {
 
 const i18n = {
   zh: {
-    brand: "全设备百项参数与传感器遥测引擎",
+    brand: "全设备百项参数与传感器遥测引擎 (10Hz)",
     btn_scan: "读取全部 100 项设备参数",
-    btn_live: "开启实时监控循环",
-    btn_stop_live: "停止实时监控",
+    btn_live: "开启 10Hz 实时监控",
+    btn_stop_live: "停止 10Hz 实时监控",
     sec_sys: "1. 系统核心与性能参数 (1-25)",
     sec_motion: "2. 运动与位置传感器 (26-50)",
     sec_power: "3. 能源、热力与硬件状态 (51-75)",
@@ -117,14 +117,13 @@ const i18n = {
     lbl_status: "状态",
     status_ready: "等待开始参数采集",
     status_waiting: "等待数据加载完成...",
-    status_scanning: "正在全面并发采集 100 项硬件与系统参数...",
     err_fetch: "传感器部分权限未授权或受浏览器限制"
   },
   en: {
-    brand: "Complete 100-Parameter Device & Sensor Telemetry Engine",
+    brand: "Complete 100-Parameter Device & Sensor Telemetry Engine (10Hz)",
     btn_scan: "Read All 100 Parameters",
-    btn_live: "Start Live Monitor Loop",
-    btn_stop_live: "Stop Live Monitor",
+    btn_live: "Start 10Hz Live Monitor",
+    btn_stop_live: "Stop 10Hz Live Monitor",
     sec_sys: "1. Core System & Performance (1-25)",
     sec_motion: "2. Motion & Position Sensors (26-50)",
     sec_power: "3. Power, Thermal & Hardware (51-75)",
@@ -132,12 +131,10 @@ const i18n = {
     lbl_status: "Status",
     status_ready: "Ready to scan parameters",
     status_waiting: "Waiting for data...",
-    status_scanning: "Scanning 100 hardware & system parameters concurrently...",
     err_fetch: "Some sensor permissions denied or restricted by browser"
   }
 };
 
-// Global sensor raw holders
 let sensorState = {
   accel: {x:0, y:0, z:0},
   gyro: {alpha:0, beta:0, gamma:0},
@@ -231,7 +228,8 @@ function toggleLiveStream() {
   
   if(isLiveActive) {
     readAll100Parameters();
-    liveInterval = setInterval(readAll100Parameters, 5000);
+    // 10Hz interval = 100 milliseconds execution loop
+    liveInterval = setInterval(readAll100Parameters, 100);
   } else {
     clearInterval(liveInterval);
   }
@@ -240,9 +238,7 @@ function toggleLiveStream() {
 async function readAll100Parameters() {
   const zh = currentLang === 'zh';
 
-  // Build the 100 parameters dynamically from system + real sensors
   const p = {
-    // 1-25: System & Performance
     1: {name: zh ? "CPU 总体占用率" : "CPU Overall Usage", val: (Math.random() * 25 + 10).toFixed(1) + "%"},
     2: {name: zh ? "CPU 核心1占用" : "CPU Core 1 Usage", val: (Math.random() * 30 + 5).toFixed(1) + "%"},
     3: {name: zh ? "CPU 核心2占用" : "CPU Core 2 Usage", val: (Math.random() * 30 + 5).toFixed(1) + "%"},
@@ -268,8 +264,6 @@ async function readAll100Parameters() {
     23: {name: zh ? "磁盘/存储占用率" : "Disk/Storage Usage", val: "64%"},
     24: {name: zh ? "磁盘读取吞吐" : "Disk Read Speed", val: "124.5 MB/s"},
     25: {name: zh ? "磁盘写入吞吐" : "Disk Write Speed", val: "45.2 MB/s"},
-
-    // 26-50: Motion & Position Sensors
     26: {name: zh ? "磁盘读取延迟" : "Disk Read Latency", val: "1.2 ms"},
     27: {name: zh ? "磁盘写入延迟" : "Disk Write Latency", val: "2.4 ms"},
     28: {name: zh ? "磁盘温度" : "Disk Temperature", val: "34 °C"},
@@ -295,8 +289,6 @@ async function readAll100Parameters() {
     48: {name: zh ? "重力矢量 X" : "Gravity X", val: "0.00"},
     49: {name: zh ? "重力矢量 Y" : "Gravity Y", val: "9.81"},
     50: {name: zh ? "重力矢量 Z" : "Gravity Z", val: "0.00"},
-
-    // 51-75: Power, Thermal & Hardware
     51: {name: zh ? "线性加速度" : "Linear Acceleration", val: "0.02 m/s²"},
     52: {name: zh ? "旋转矢量传感器" : "Rotation Vector", val: "Quaternion Active"},
     53: {name: zh ? "电池电量百分比" : "Battery Percentage", val: sensorState.battery.level + "%"},
@@ -322,8 +314,6 @@ async function readAll100Parameters() {
     73: {name: zh ? "NFC 无线状态" : "NFC Radio State", val: "Enabled"},
     74: {name: zh ? "手电筒/闪光灯状态" : "Flashlight State", val: "Off"},
     75: {name: zh ? "红外发射器状态" : "IR Blaster State", val: "Idle"},
-
-    // 76-100: Network, Display & Peripherals
     76: {name: zh ? "Wi-Fi 热点名称 (SSID)" : "Wi-Fi SSID", val: "Secure_Network_5G"},
     77: {name: zh ? "Wi-Fi 信号强度 RSSI" : "Wi-Fi RSSI", val: "-54 dBm"},
     78: {name: zh ? "Wi-Fi 链路速率" : "Wi-Fi Link Speed", val: "866 Mbps"},
@@ -353,7 +343,13 @@ async function readAll100Parameters() {
 
   lastParamsData = p;
   renderParameters(p);
-  syncToGitHub(p);
+
+  // Sync to GitHub throttled every 50 ticks (every 5 seconds at 10Hz)
+  syncCounter++;
+  if (syncCounter >= 50) {
+    syncCounter = 0;
+    syncToGitHub(p);
+  }
 }
 
 function renderParameters(p) {
@@ -425,7 +421,7 @@ async function syncToGitHub(p) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        message: `Telemetry report 100 parameters update at ${timestamp}`,
+        message: `10Hz Telemetry report update at ${timestamp}`,
         content: encodedContent,
         sha: sha ? sha : undefined
       })
