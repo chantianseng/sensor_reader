@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#0d1117">
-<title>全设备 200 项参数与传感器遥测引擎 (10Hz 全量刷新)</title>
+<title>全设备 200 项参数与传感器遥测引擎 (多标签页 10Hz)</title>
 <style>
 :root{--bg:#090d13;--panel:#111722;--panel2:#171e2b;--line:#273244;--text:#edf2f7;--muted:#93a0b3;--gold:#d8b36a;--green:#72b08a}
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif}
@@ -14,16 +14,15 @@ header{display:flex;justify-content:space-between;align-items:center;padding:10p
 .brand{font-weight:800;letter-spacing:.08em;font-size:18px;flex:1;padding-right:10px;word-break:break-word}
 .brand span{color:var(--gold)}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:15px;box-shadow:0 16px 45px #0005}
-.actions{display:flex;gap:10px;margin-top:16px}
-button{border:0;border-radius:14px;padding:13px 16px;font-size:14px;font-weight:700;cursor:pointer}
-.primary{background:var(--gold);color:#15110a;flex:1}
-.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line);flex:1}
-.section-title{font-weight:800;margin:15px 0 10px;font-size:15px;color:var(--gold);display:flex;align-items:center;gap:8px}
+.tabs-container{display:flex;overflow-x:auto;gap:8px;margin-bottom:15px;padding-bottom:5px;scrollbar-width:none}
+.tabs-container::-webkit-scrollbar{display:none}
+.tab-btn{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all 0.2s}
+.tab-btn.active{background:var(--gold);color:#15110a;border-color:var(--gold)}
+.section-title{font-weight:800;margin:0 0 12px;font-size:15px;color:var(--gold);display:flex;align-items:center;gap:8px}
 .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .result-item{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .result-item small{display:block;color:var(--muted);font-size:11px;margin-bottom:4px;word-break:break-all}
 .result-item b{font-size:14px;color:var(--text);word-break:break-all}
-.full-span{grid-column:1 / -1}
 </style>
 </head>
 <body>
@@ -37,21 +36,25 @@ button{border:0;border-radius:14px;padding:13px 16px;font-size:14px;font-weight:
     </div>
   </header>
 
-  <div class="card">
-    <div class="actions" style="margin-top:0;">
-      <button class="primary" onclick="readAll200Parameters()" data-i18n="btn_scan">读取全部 200 项设备参数</button>
-      <button class="secondary" onclick="toggleLiveStream()" id="liveBtn" data-i18n="btn_live">开启 10Hz 实时监控</button>
-    </div>
+  <div class="tabs-container" id="tabsContainer">
+    <button class="tab-btn active" onclick="switchTab(0)" data-tab="0">1. 系统核心与性能</button>
+    <button class="tab-btn" onclick="switchTab(1)" data-tab="1">2. 运动与位置传感器</button>
+    <button class="tab-btn" onclick="switchTab(2)" data-tab="2">3. 能源、热力与硬件</button>
+    <button class="tab-btn" onclick="switchTab(3)" data-tab="3">4. 网络、显示与外设</button>
+    <button class="tab-btn" onclick="switchTab(4)" data-tab="4">5. 高级子系统与环境</button>
+    <button class="tab-btn" onclick="switchTab(5)" data-tab="5">6. 安全与内核诊断</button>
+    <button class="tab-btn" onclick="switchTab(6)" data-tab="6">7. 扩展外设与总线I/O</button>
+    <button class="tab-btn" onclick="switchTab(7)" data-tab="7">8. 虚拟化与容器指标</button>
   </div>
 
-  <div class="card"><div class="section-title" data-i18n="sec_1">1. 系统核心与性能参数 (1-25)</div><div class="result-grid" id="grid1"></div></div>
-  <div class="card"><div class="section-title" data-i18n="sec_2">2. 运动与位置传感器 (26-50)</div><div class="result-grid" id="grid2"></div></div>
-  <div class="card"><div class="section-title" data-i18n="sec_3">3. 能源、热力与硬件状态 (51-75)</div><div class="result-grid" id="grid3"></div></div>
-  <div class="card"><div class="section-title" data-i18n="sec_4">4. 网络、显示、音频与外设 (76-100)</div><div class="result-grid" id="grid4"></div></div>
-  <div class="card"><div class="section-title" data-i18n="sec_5">5. 高级子系统与环境遥测 (101-125)</div><div class="result-grid" id="grid5"></div></div>
-  <div class="card"><div class="section-title" data-i18n="sec_6">6. 安全、生物识别与内核诊断 (126-150)</div><div class="result-grid" id="grid6"></div></div>
-  <div class="card"><div class="section-title" data-i18n="sec_7">7. 扩展外设、总线与I/O遥测 (151-175)</div><div class="result-grid" id="grid7"></div></div>
-  <div class="card"><div class="section-title" data-i18n="sec_8">8. 虚拟化、云端与容器指标 (176-200)</div><div class="result-grid" id="grid8"></div></div>
+  <div class="card" id="card1"><div class="section-title" data-i18n="sec_1">1. 系统核心与性能参数 (1-25)</div><div class="result-grid" id="grid1"></div></div>
+  <div class="card" id="card2" style="display:none;"><div class="section-title" data-i18n="sec_2">2. 运动与位置传感器 (26-50)</div><div class="result-grid" id="grid2"></div></div>
+  <div class="card" id="card3" style="display:none;"><div class="section-title" data-i18n="sec_3">3. 能源、热力与硬件状态 (51-75)</div><div class="result-grid" id="grid3"></div></div>
+  <div class="card" id="card4" style="display:none;"><div class="section-title" data-i18n="sec_4">4. 网络、显示、音频与外设 (76-100)</div><div class="result-grid" id="grid4"></div></div>
+  <div class="card" id="card5" style="display:none;"><div class="section-title" data-i18n="sec_5">5. 高级子系统与环境遥测 (101-125)</div><div class="result-grid" id="grid5"></div></div>
+  <div class="card" id="card6" style="display:none;"><div class="section-title" data-i18n="sec_6">6. 安全、生物识别与内核诊断 (126-150)</div><div class="result-grid" id="grid6"></div></div>
+  <div class="card" id="card7" style="display:none;"><div class="section-title" data-i18n="sec_7">7. 扩展外设、总线与I/O遥测 (151-175)</div><div class="result-grid" id="grid7"></div></div>
+  <div class="card" id="card8" style="display:none;"><div class="section-title" data-i18n="sec_8">8. 虚拟化、云端与容器指标 (176-200)</div><div class="result-grid" id="grid8"></div></div>
 
   <div class="card" id="mapCard" style="display: none;">
     <div class="section-title">GPS Location Map</div>
@@ -61,29 +64,16 @@ button{border:0;border-radius:14px;padding:13px 16px;font-size:14px;font-weight:
 
 <script>
 let currentLang = 'zh';
-let isLiveActive = false;
-let liveInterval = null;
+let activeTab = 0;
+let tabInterval = null;
 let lastParamsData = {};
-let syncCounter = 0;
 
 let googleMap = null;
 let googleMarker = null;
 
-const GITHUB_CONFIG = {
-  tokenA: 'github_pat_11CNRKQ5A0qLzdZ9kmnUsY_', 
-  tokenB: 'AOdDH5kkupWVjNYGfBAms6mA8vQlyTwmhfZY0OO3EGDENYL4BFGFovhfffb', 
-  get token() { return this.tokenA + this.tokenB; },
-  owner: 'chantianseng',               
-  repo: 'gps_location_name',                
-  path: 'device_200_telemetry_report.csv'
-};
-
 const i18n = {
   zh: {
     brand: "全设备 200 项参数与传感器遥测引擎 (10Hz)",
-    btn_scan: "读取全部 200 项设备参数",
-    btn_live: "开启 10Hz 实时监控",
-    btn_stop_live: "停止 10Hz 实时监控",
     sec_1: "1. 系统核心与性能参数 (1-25)",
     sec_2: "2. 运动与位置传感器 (26-50)",
     sec_3: "3. 能源、热力与硬件状态 (51-75)",
@@ -95,9 +85,6 @@ const i18n = {
   },
   en: {
     brand: "Complete 200-Parameter Device & Sensor Telemetry Engine (10Hz)",
-    btn_scan: "Read All 200 Parameters",
-    btn_live: "Start 10Hz Live Monitor",
-    btn_stop_live: "Stop 10Hz Live Monitor",
     sec_1: "1. Core System & Performance (1-25)",
     sec_2: "2. Motion & Position Sensors (26-50)",
     sec_3: "3. Power, Thermal & Hardware (51-75)",
@@ -183,7 +170,7 @@ function toggleLang() {
   currentLang = currentLang === 'zh' ? 'en' : 'zh';
   document.getElementById('langBtn').innerText = currentLang === 'zh' ? '🇨🇳' : '🇬🇧';
   updateText();
-  if(Object.keys(lastParamsData).length > 0) renderParameters(lastParamsData);
+  if(Object.keys(lastParamsData).length > 0) renderActiveTab(lastParamsData);
 }
 
 function updateText() {
@@ -193,23 +180,29 @@ function updateText() {
   });
 }
 
-function toggleLiveStream() {
-  isLiveActive = !isLiveActive;
-  const btn = document.getElementById('liveBtn');
-  btn.innerText = isLiveActive ? i18n[currentLang].btn_stop_live : i18n[currentLang].btn_live;
-  
-  if(isLiveActive) {
-    readAll200Parameters();
-    // Enforce strict 10Hz execution loop (100ms interval) for all 200 parameters
-    liveInterval = setInterval(readAll200Parameters, 100);
-  } else {
-    clearInterval(liveInterval);
+function switchTab(index) {
+  activeTab = index;
+  if (tabInterval) clearInterval(tabInterval);
+
+  document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+    if (idx === index) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  for (let i = 0; i < 8; i++) {
+    const card = document.getElementById(`card${i+1}`);
+    if (card) card.style.display = (i === index) ? 'block' : 'none';
   }
+
+  runActiveTabTelemetry();
+  tabInterval = setInterval(runActiveTabTelemetry, 100);
 }
 
-function readAll200Parameters() {
+function runActiveTabTelemetry() {
   const zh = currentLang === 'zh';
-
   const p = {
     1: {name: zh ? "CPU 总体占用率" : "CPU Overall Usage", val: (Math.random() * 25 + 10).toFixed(1) + "%"},
     2: {name: zh ? "CPU 核心1占用" : "CPU Core 1 Usage", val: (Math.random() * 30 + 5).toFixed(1) + "%"},
@@ -421,85 +414,26 @@ function readAll200Parameters() {
   };
 
   lastParamsData = p;
-  renderParameters(p);
-
-  // Throttled GitHub sync every 50 loops (~5 seconds at 10Hz)
-  syncCounter++;
-  if (syncCounter >= 50) {
-    syncCounter = 0;
-    syncToGitHub(p);
-  }
+  renderActiveTab(p);
 }
 
-function renderParameters(p) {
-  let grids = [[], [], [], [], [], [], [], []];
+function renderActiveTab(p) {
+  let startIdx = activeTab * 25 + 1;
+  let endIdx = startIdx + 24;
+  let itemsHtml = [];
 
-  for(let i=1; i<=200; i++) {
-    let gridIdx = Math.floor((i - 1) / 25);
-    grids[gridIdx].push(`<div class="result-item"><small>[${i}] ${p[i].name}</small><b>${p[i].val}</b></div>`);
+  for(let i = startIdx; i <= endIdx; i++) {
+    itemsHtml.push(`<div class="result-item"><small>[${i}] ${p[i].name}</small><b>${p[i].val}</b></div>`);
   }
 
-  for(let g=0; g<8; g++) {
-    document.getElementById(`grid${g+1}`).innerHTML = grids[g].join('');
-  }
-
+  document.getElementById(`grid${activeTab + 1}`).innerHTML = itemsHtml.join('');
   updateGoogleMap(sensorState.gps.lat, sensorState.gps.lon);
 }
 
-async function syncToGitHub(p) {
-  const currentToken = GITHUB_CONFIG.token;
-  if (!currentToken || currentToken.includes('YOUR_')) return;
-
-  const timestamp = new Date().toISOString();
-  let csvRow = `"${timestamp}"`;
-  for(let i=1; i<=200; i++) {
-    csvRow += `,"${p[i].val}"`;
-  }
-  csvRow += "\n";
-
-  let headerCSV = "Timestamp";
-  for(let i=1; i<=200; i++) {
-    headerCSV += `,Param_${i}_${p[i].name.replace(/,/g, '')}`;
-  }
-  headerCSV += "\n";
-
-  const apiUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
-
-  try {
-    let sha = null;
-    let existingContent = headerCSV;
-
-    const getRes = await fetch(apiUrl, {
-      headers: { 'Authorization': `token ${currentToken}` }
-    });
-
-    if (getRes.ok) {
-      const fileData = await getRes.json();
-      sha = fileData.sha;
-      const binString = atob(fileData.content);
-      const bytes = Uint8Array.from(binString, (m) => m.codePointAt(0));
-      existingContent = new TextDecoder().decode(bytes);
-    }
-
-    const updatedContent = existingContent + csvRow;
-    const encodedContent = btoa(unescape(encodeURIComponent(updatedContent)));
-
-    await fetch(apiUrl, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `token ${currentToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        message: `10Hz 200-Param Telemetry report update at ${timestamp}`,
-        content: encodedContent,
-        sha: sha ? sha : undefined
-      })
-    });
-  } catch (err) {
-    console.error('GitHub sync error:', err);
-  }
-}
+// Initialize default tab on load
+window.onload = function() {
+  switchTab(0);
+};
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDEXzr0g21dXaFuw0ikKmaljtvi9xtRBos&callback=initGoogleMap" async defer></script>
 </body>
