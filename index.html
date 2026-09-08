@@ -67,6 +67,7 @@ let currentLang = 'zh';
 let activeTab = 0;
 let tabInterval = null;
 let lastParamsData = {};
+let sensorsInitialized = false;
 
 let googleMap = null;
 let googleMarker = null;
@@ -104,35 +105,66 @@ let sensorState = {
   orientation: {alpha:0, beta:0, gamma:0}
 };
 
-window.addEventListener('devicemotion', (e) => {
-  if(e.acceleration) {
-    sensorState.accel.x = e.acceleration.x ? e.acceleration.x.toFixed(2) : 0;
-    sensorState.accel.y = e.acceleration.y ? e.acceleration.y.toFixed(2) : 0;
-    sensorState.accel.z = e.acceleration.z ? e.acceleration.z.toFixed(2) : 0;
+function initSensors() {
+  if (sensorsInitialized) return;
+  
+  // Request permission for iOS 13+ devices
+  if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+    DeviceMotionEvent.requestPermission().then(response => {
+      if (response === 'granted') {
+        window.addEventListener('devicemotion', handleMotion);
+      }
+    }).catch(console.error);
+  } else {
+    window.addEventListener('devicemotion', handleMotion);
   }
-});
 
-window.addEventListener('deviceorientation', (e) => {
-  sensorState.orientation.alpha = e.alpha ? e.alpha.toFixed(1) : 0;
-  sensorState.orientation.beta = e.beta ? e.beta.toFixed(1) : 0;
-  sensorState.orientation.gamma = e.gamma ? e.gamma.toFixed(1) : 0;
-});
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission().then(response => {
+      if (response === 'granted') {
+        window.addEventListener('deviceorientation', handleOrientation);
+      }
+    }).catch(console.error);
+  } else {
+    window.addEventListener('deviceorientation', handleOrientation);
+  }
 
-if (navigator.geolocation) {
-  navigator.geolocation.watchPosition(pos => {
-    sensorState.gps.lat = pos.coords.latitude;
-    sensorState.gps.lon = pos.coords.longitude;
-    sensorState.gps.alt = pos.coords.altitude || 0;
-    sensorState.gps.speed = pos.coords.speed || 0;
-    sensorState.gps.accuracy = pos.coords.accuracy || 0;
-  }, err => {}, {enableHighAccuracy: true});
+  if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(pos => {
+      sensorState.gps.lat = pos.coords.latitude;
+      sensorState.gps.lon = pos.coords.longitude;
+      sensorState.gps.alt = pos.coords.altitude || 0;
+      sensorState.gps.speed = pos.coords.speed || 0;
+      sensorState.gps.accuracy = pos.coords.accuracy || 0;
+    }, err => {}, {enableHighAccuracy: true, maximumAge: 0, timeout: 5000});
+  }
+
+  if (navigator.getBattery) {
+    navigator.getBattery().then(bat => {
+      sensorState.battery.level = Math.round(bat.level * 100);
+      sensorState.battery.charging = bat.charging;
+    });
+  }
+
+  sensorsInitialized = true;
 }
 
-if (navigator.getBattery) {
-  navigator.getBattery().then(bat => {
-    sensorState.battery.level = Math.round(bat.level * 100);
-    sensorState.battery.charging = bat.charging;
-  });
+function handleMotion(e) {
+  if (e.acceleration) {
+    sensorState.accel.x = e.acceleration.x !== null ? e.acceleration.x.toFixed(2) : 0;
+    sensorState.accel.y = e.acceleration.y !== null ? e.acceleration.y.toFixed(2) : 0;
+    sensorState.accel.z = e.acceleration.z !== null ? e.acceleration.z.toFixed(2) : 0;
+  } else if (e.accelerationIncludingGravity) {
+    sensorState.accel.x = e.accelerationIncludingGravity.x !== null ? e.accelerationIncludingGravity.x.toFixed(2) : 0;
+    sensorState.accel.y = e.accelerationIncludingGravity.y !== null ? e.accelerationIncludingGravity.y.toFixed(2) : 0;
+    sensorState.accel.z = e.accelerationIncludingGravity.z !== null ? e.accelerationIncludingGravity.z.toFixed(2) : 0;
+  }
+}
+
+function handleOrientation(e) {
+  sensorState.orientation.alpha = e.alpha !== null ? e.alpha.toFixed(1) : 0;
+  sensorState.orientation.beta = e.beta !== null ? e.beta.toFixed(1) : 0;
+  sensorState.orientation.gamma = e.gamma !== null ? e.gamma.toFixed(1) : 0;
 }
 
 window.initGoogleMap = function() {
@@ -181,6 +213,9 @@ function updateText() {
 }
 
 function switchTab(index) {
+  // Trigger sensor permission request on user tap/click interaction
+  initSensors();
+
   activeTab = index;
   if (tabInterval) clearInterval(tabInterval);
 
