@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#0d1117">
-<title>iPhone 15 Telemetry Engine (10Hz)</title>
+<title>iPhone 15 Telemetry Engine (60Hz)</title>
 <style>
 :root{--bg:#090d13;--panel:#111722;--panel2:#171e2b;--line:#273244;--text:#edf2f7;--muted:#93a0b3;--gold:#d8b36a;--green:#72b08a;--blue:#58a6ff}
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif}
@@ -32,8 +32,8 @@ canvas{width:100%;height:100%;display:block}
 
 <div class="app">
   <header>
-    <div class="brand">iPhone 15 Telemetry (10Hz)</div>
-    <div style="font-size: 11px; color: var(--green);">● Live Stream</div>
+    <div class="brand">iPhone 15 Telemetry (60Hz)</div>
+    <div style="font-size: 11px; color: var(--green);">● Live Stream (60fps)</div>
   </header>
 
   <div class="ip-badge">
@@ -107,9 +107,8 @@ canvas{width:100%;height:100%;display:block}
 
 <script>
 let activeTab = 0;
-let loopTimer = null;
 let sensorsInitialized = false;
-const maxPoints = 40;
+const maxPoints = 120; // Expanded point window to maintain smooth history span at 60Hz
 
 let sensorData = {
   cpu: 15, gpu: 10,
@@ -189,14 +188,14 @@ function switchTab(index) {
 }
 
 function updateTelemetryData() {
-  sensorData.cpu = Math.min(95, Math.max(10, sensorData.cpu + (Math.random() * 10 - 5)));
-  sensorData.gpu = Math.min(90, Math.max(5, sensorData.gpu + (Math.random() * 12 - 6)));
-  sensorData.download = Math.max(5, sensorData.download + (Math.random() * 20 - 10));
-  sensorData.upload = Math.max(2, sensorData.upload + (Math.random() * 8 - 4));
-  sensorData.light = Math.max(10, sensorData.light + (Math.random() * 20 - 10));
-  sensorData.pressure = 1013 + (Math.random() * 2 - 1);
-  sensorData.mic = -50 + (Math.random() * 10);
-  sensorData.mag = 45 + (Math.random() * 2 - 1);
+  sensorData.cpu = Math.min(95, Math.max(10, sensorData.cpu + (Math.random() * 4 - 2)));
+  sensorData.gpu = Math.min(90, Math.max(5, sensorData.gpu + (Math.random() * 5 - 2.5)));
+  sensorData.download = Math.max(5, sensorData.download + (Math.random() * 8 - 4));
+  sensorData.upload = Math.max(2, sensorData.upload + (Math.random() * 3 - 1.5));
+  sensorData.light = Math.max(10, sensorData.light + (Math.random() * 10 - 5));
+  sensorData.pressure = 1013 + (Math.random() * 1 - 0.5);
+  sensorData.mic = -50 + (Math.random() * 4 - 2);
+  sensorData.mag = 45 + (Math.random() * 1 - 0.5);
 
   if(activeTab === 0) {
     pushHistory('cpu', sensorData.cpu);
@@ -293,8 +292,13 @@ function drawLineChart(canvasId, datasets, colors) {
   });
 }
 
-// 10Hz Execution Loop (100ms)
-loopTimer = setInterval(updateTelemetryData, 100);
+// 60Hz Execution Loop using requestAnimationFrame for smooth native refresh synchronization
+function telemetryLoop() {
+  updateTelemetryData();
+  requestAnimationFrame(telemetryLoop);
+}
+
+requestAnimationFrame(telemetryLoop);
 </script>
 </body>
 </html>
